@@ -1,0 +1,465 @@
+{
+  "name": "Qualibook",
+  "nodes": [
+    {
+      "parameters": {
+        "modelName": "models/gemini-flash-lite-latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1072,
+        256
+      ],
+      "id": "fc1ec96b-b683-44b9-9c37-67bbdad0a82f",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "FnpTD1N24CCPolEv",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Call this tool immediately whenever the user mentions their budget, preferred area, whether they're buying or renting, or their timeline. Pass whichever fields were mentioned; leave others empty.",
+        "operation": "executeQuery",
+        "query": "UPDATE leads\nSET\n  budget = COALESCE(NULLIF('{{ $fromAI(\"budget\", \"the lead's budget, or empty if not mentioned\", \"string\") }}', ''), budget),\n  area = COALESCE(NULLIF('{{ $fromAI(\"area\", \"the area/neighborhood they want, or empty if not mentioned\", \"string\") }}', ''), area),\n  intent = COALESCE(NULLIF('{{ $fromAI(\"intent\", \"buying or renting, or empty if not mentioned\", \"string\") }}', ''), intent),\n  timeline = COALESCE(NULLIF('{{ $fromAI(\"timeline\", \"how soon they want to move, or empty if not mentioned\", \"string\") }}', ''), timeline),\n  stage = COALESCE(NULLIF('{{ $fromAI(\"stage\", \"new stage: qualifying, qualified, or unqualified, or empty if unchanged\", \"string\") }}', ''), stage),\n  updated_at = NOW()\nWHERE contact_id = '{{ $json.contact_id }}'\nRETURNING *;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.7,
+      "position": [
+        1376,
+        384
+      ],
+      "id": "9ee2e2ab-5280-47eb-902f-ce2569bdf0d8",
+      "name": "Update lead",
+      "credentials": {
+        "postgres": {
+          "id": "YtM5g0c7DeUxwJu5",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Check if a date/time is free. Call before booking",
+        "resource": "calendar",
+        "calendar": {
+          "__rl": true,
+          "value": "8e13cba50f691fed55d030000b113b06c08b3ea7e19653dd7d3555ef682ac6fa@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "real estate agency"
+        },
+        "timeMin": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start_Time', ``, 'string') }}",
+        "timeMax": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('End_Time', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        1664,
+        256
+      ],
+      "id": "60dc4ab5-1506-4379-938a-e9364b6d53cb",
+      "name": "check_calendar_availability",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "2TtoeYmogvkG0nM8",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Book a meeting. Only call after availability is confirmed and lead has agreed to the time.",
+        "calendar": {
+          "__rl": true,
+          "value": "8e13cba50f691fed55d030000b113b06c08b3ea7e19653dd7d3555ef682ac6fa@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "real estate agency"
+        },
+        "start": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start', ``, 'string') }}",
+        "end": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('End', ``, 'string') }}",
+        "additionalFields": {
+          "attendees": [
+            "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('attendees0_Attendees', ``, 'string') }}"
+          ],
+          "summary": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Summary', ``, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        1536,
+        352
+      ],
+      "id": "5072157d-e584-42ae-bc3f-5456653b2900",
+      "name": "book_calendar_meeting",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "2TtoeYmogvkG0nM8",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "1289693837568553",
+        "recipientPhoneNumber": "={{ $('Incomming WhatsApp Message').item.json.contacts[0].wa_id }}",
+        "textBody": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        1760,
+        80
+      ],
+      "id": "5f1dd817-8712-408e-891d-355d71ec1545",
+      "name": "Send message",
+      "webhookId": "fe963262-3404-48d4-9b3a-d9c83e184c3b",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "qFFfsarZDg9bBXG9",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        32,
+        64
+      ],
+      "id": "03e3fe12-a713-44bb-87bc-3ec9a580c81c",
+      "name": "Incomming WhatsApp Message",
+      "webhookId": "1bbbf1cc-9e4c-4830-938b-95a5d11e4d39",
+      "credentials": {
+        "whatsAppTriggerApi": {
+          "id": "GFoHNsBxBVmk2AFZ",
+          "name": "WhatsApp OAuth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM leads WHERE contact_id = '{{ $json.messages[0].from }}';",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        224,
+        64
+      ],
+      "id": "d288cd32-8b0b-4780-8a7c-5d6b387307ca",
+      "name": "Find Lead by Contact ID",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "YtM5g0c7DeUxwJu5",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b3067d7e-5f32-4ca4-ad2b-029e28166f80",
+              "leftValue": "={{ $json.contact_id }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        416,
+        64
+      ],
+      "id": "2f103dfc-0d48-4e2e-8f56-b96127599000",
+      "name": "Lead new ?"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a2d4bed7-5b96-4ec0-a833-0b43897059fb",
+              "name": "message",
+              "value": "={{ $('Incomming WhatsApp Message').item.json.messages[0].text.body }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        944,
+        80
+      ],
+      "id": "9097966f-b403-4cd9-b8f4-52b477e435ce",
+      "name": "Prepare Agent Context"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst first = items[0]?.json || {};\nconst leadExists = Object.keys(first).length > 0;\nconst trigger = $('Incomming WhatsApp Message').first().json;\n\nreturn [{\n  json: {\n    leadExists,\n    contact_id: trigger.messages[0].from,\n    message: trigger.messages[0].text.body,\n    lead: leadExists ? first : null\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        576,
+        -128
+      ],
+      "id": "ad451982-8e42-4d78-a056-7e6aca2509c1",
+      "name": "Prepare new Lead"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO leads (contact_id, stage, name)\nVALUES (\n  '{{ $json.contact_id }}',\n  'new',\n  '{{ $('WhatsApp Trigger').item.json.contacts[0].profile.name.replace(/'/g, \"''\") }}'\n)\nRETURNING *;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        752,
+        -128
+      ],
+      "id": "f208aef6-258b-4853-9d3e-2a1eb6f29403",
+      "name": "Create Lead Record",
+      "credentials": {
+        "postgres": {
+          "id": "YtM5g0c7DeUxwJu5",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message }}",
+        "options": {
+          "systemMessage": "=You are a friendly assistant for a real estate agency. Your job is to qualify leads through natural conversation.\n\nYou need to collect these 4 pieces of info, one question at a time (don't ask multiple at once):\n- budget\n- area (which neighborhood/city they're interested in)\n- intent (buying or renting)\n- timeline (how soon they want to move)\n\nCurrent lead data:\n- name: {{ $json.name }}\n- budget: {{ $json.budget }}\n- area: {{ $json.area }}\n- intent: {{ $json.intent }}\n- timeline: {{ $json.timeline }}\n- stage: {{ $json.stage }}\n\nRules:\n- Only ask about fields that are still null. Don't repeat questions already answered.\n- Once all 4 fields are filled, mark the lead as qualified and tell them you'll help schedule a meeting.\n- Keep replies short and conversational, like a real WhatsApp message — not a form.\n- If the person seems unserious, rude, or clearly not a real buyer, mark stage as \"unqualified\" instead of pushing forward.\nCRITICAL: Every time the user provides ANY new information (budget, area, intent, or timeline), you MUST call the Update Lead tool in the same turn, before replying to the user. Never just acknowledge new info in your reply without also calling the tool — the information is lost if you don't call it.\n\nWhen you learn new information, use the Update \nLead tool to save it immediately.\nOnce all 4 fields are filled and the lead is qualified:\n- Ask what date/time works for them to meet.\n- When they give a time, call check_calendar_availability first — never book blind.\n- If available: confirm with the lead (\"does 3pm Tuesday work?\"), then call book_calendar_meeting only after they say yes.\n- If unavailable: tell them it's taken and ask for another time, or offer alternatives if the tool returns any.\n- Never call book_calendar_meeting without first calling check_calendar_availability in that same conversation.\n- After booking, confirm the meeting is set and stop — don't re-ask qualifying questions."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1264,
+        80
+      ],
+      "id": "806dc4dd-b625-441a-83d8-62bf89651630",
+      "name": "AI Lead qualification Agent"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.contact_id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.4,
+      "position": [
+        1216,
+        320
+      ],
+      "id": "999fec6c-f06b-4921-9b92-ec0ec19e4eb5",
+      "name": "PostgreSQL Conversation memory",
+      "credentials": {
+        "postgres": {
+          "id": "YtM5g0c7DeUxwJu5",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Lead qualification Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update lead": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Lead qualification Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check_calendar_availability": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Lead qualification Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "book_calendar_meeting": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Lead qualification Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Incomming WhatsApp Message": {
+      "main": [
+        [
+          {
+            "node": "Find Lead by Contact ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Lead by Contact ID": {
+      "main": [
+        [
+          {
+            "node": "Lead new ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lead new ?": {
+      "main": [
+        [
+          {
+            "node": "Prepare new Lead",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Agent Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Agent Context": {
+      "main": [
+        [
+          {
+            "node": "AI Lead qualification Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare new Lead": {
+      "main": [
+        [
+          {
+            "node": "Create Lead Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Lead Record": {
+      "main": [
+        [
+          {
+            "node": "Prepare Agent Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Lead qualification Agent": {
+      "main": [
+        [
+          {
+            "node": "Send message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PostgreSQL Conversation memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Lead qualification Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "8a20913b-b6f7-4d8b-9fa9-2d08a833fcdf",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d473a54e93f2446bd7abfdf82a3fff8f4795946abcb6fcc2842db867c0a7f084"
+  },
+  "nodeGroups": [],
+  "id": "HFvyG627XSY0obn2",
+  "tags": []
+}
